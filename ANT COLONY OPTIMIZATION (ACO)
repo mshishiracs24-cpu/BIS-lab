@@ -1,0 +1,81 @@
+import numpy as np
+
+# Distance Matrix (Depot + 4 Hubs)
+# Node 0: Depot, Nodes 1-4: Hubs
+dist_matrix = np.array([
+    [0, 4, 8, 3, 6],
+    [4, 0, 5, 6, 2],
+    [8, 5, 0, 2, 4],
+    [3, 6, 2, 0, 5],
+    [6, 2, 4, 5, 0]
+])
+
+# Parameters
+NUM_ANTS = 10
+ALPHA = 1.0 # Pheromone importance[span_0](start_span)[span_0](end_span)
+BETA = 2.0 # Heuristic importance[span_1](start_span)[span_1](end_span)
+EVAPORATION_RATE = 0.1 # Pheromone decay rate[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)
+MAX_ITERATIONS = 40
+NUM_NODES = len(dist_matrix)
+
+# Initialize pheromones and heuristic visibility
+pheromones = np.ones((NUM_NODES, NUM_NODES)) * 0.1
+with np.errstate(divide='ignore'):
+    heuristic = 1.0 / dist_matrix
+    heuristic[np.isinf(heuristic)] = 0
+
+best_tour = None
+best_distance = float('inf')
+
+# Optimization Loop
+for iteration in range(MAX_ITERATIONS):
+    all_tours = []
+    all_distances = []
+    
+    for ant in range(NUM_ANTS):
+        current_node = 0 # Start at Depot
+        tour = [current_node]
+        visited = {current_node}
+        
+        while len(visited) < NUM_NODES:
+            unvisited = [n for n in range(NUM_NODES) if n not in visited]
+            probs = [
+                (pheromones[current_node][n] ** ALPHA) * (heuristic[current_node][n] ** BETA)
+                for n in unvisited
+            ]
+            
+            probs = np.array(probs)
+            probs = probs / probs.sum() if probs.sum() > 0 else np.ones(len(probs)) / len(probs)
+            
+            next_node = np.random.choice(unvisited, p=probs)
+            tour.append(next_node)
+            visited.add(next_node)
+            current_node = next_node
+            
+        tour.append(0) # Return to Depot
+        
+        dist = sum(dist_matrix[tour[i]][tour[i+1]] for i in range(len(tour) - 1))
+        all_tours.append(tour)
+        all_distances.append(dist)
+        
+        if dist < best_distance:
+            best_distance = dist
+            best_tour = tour
+            
+    # Pheromone Update (Evaporation + Deposit)
+    pheromones *= (1 - EVAPORATION_RATE)
+    for tour, dist in zip(all_tours, all_distances):
+        for i in range(len(tour) - 1):
+            u, v = tour[i], tour[i+1]
+            pheromones[u][v] += 1.0 / dist
+            pheromones[v][u] += 1.0 / dist
+
+print("Best Tour Sequence:", best_tour)
+print("Minimum Total Distance:", best_distance)
+
+
+
+
+OUTPUT:
+Best Tour Sequence: [0, np.int32(3), np.int32(2), np.int32(4), np.int32(1), 0]
+Minimum Total Distance: 15
