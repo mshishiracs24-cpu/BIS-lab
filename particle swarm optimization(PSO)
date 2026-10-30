@@ -1,0 +1,57 @@
+import numpy as np
+
+# Cost Matrix (Stations x Zones)
+cost_matrix = np.array([
+    [5, 9, 2, 6],
+    [8, 4, 7, 3],
+    [1, 6, 8, 5],
+    [4, 3, 5, 2]
+])
+
+# Parameters
+SWARM_SIZE = 10
+DIMENSION = 4
+W = 0.5
+C1 = 1.5
+C2 = 1.5
+MAX_ITER = 40
+
+# Initialize positions and velocities
+positions = np.random.uniform(0, 4, (SWARM_SIZE, DIMENSION))
+velocities = np.zeros((SWARM_SIZE, DIMENSION))
+
+# Fitness function mapping continuous positions to discrete assignments via argsort
+def evaluate(pos):
+    assignment = np.argsort(pos)
+    return sum(cost_matrix[i, zone] for i, zone in enumerate(assignment))
+
+p_best_pos = positions.copy()
+p_best_val = np.array([evaluate(p) for p in positions])
+g_best_pos = p_best_pos[np.argmin(p_best_val)]
+g_best_val = np.min(p_best_val)
+
+# Optimization Loop
+for _ in range(MAX_ITER):
+    r1, r2 = np.random.rand(), np.random.rand()
+    for i in range(SWARM_SIZE):
+        velocities[i] = (W * velocities[i] + 
+                         C1 * r1 * (p_best_pos[i] - positions[i]) + 
+                         C2 * r2 * (g_best_pos - positions[i]))
+        positions[i] += velocities[i]
+        
+        val = evaluate(positions[i])
+        if val < p_best_val[i]:
+            p_best_val[i] = val
+            p_best_pos[i] = positions[i].copy()
+            if val < g_best_val:
+                g_best_val = val
+                g_best_pos = positions[i].copy()
+
+print("Optimal Station-to-Zone Assignment:", np.argsort(g_best_pos))
+print("Minimum Total Cost:", g_best_val)
+
+
+
+OUTPUT:
+Optimal Station-to-Zone Assignment: [2 3 0 1]
+Minimum Total Cost: 9
