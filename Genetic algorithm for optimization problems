@@ -1,0 +1,66 @@
+import numpy as np
+
+# Distance / Cost Matrix (Drivers x Orders)
+cost_matrix = np.array([
+    [5, 9, 2, 6],
+    [8, 4, 7, 3],
+    [1, 6, 8, 5],
+    [4, 3, 5, 2]
+])
+
+# Parameters from notes
+POPULATION_SIZE = 10
+CHROMOSOME_LENGTH = 4
+MUTATION_RATE = 0.10
+GENERATIONS = 40
+
+# Initialize population (each individual is a permutation of order assignments for drivers 0 to 3)
+population = [np.random.permutation(CHROMOSOME_LENGTH) for _ in range(POPULATION_SIZE)]
+
+def fitness(chromosome):
+    # Total distance for the assignment (Driver i -> Order chromosome[i])
+    total_distance = sum(cost_matrix[i, chromosome[i]] for i in range(CHROMOSOME_LENGTH))
+    return total_distance
+
+# Genetic Algorithm Loop
+for gen in range(GENERATIONS):
+    # Evaluate fitness for each individual
+    scored_pop = [(ind, fitness(ind)) for ind in population]
+    # Sort by lowest distance (best fitness)
+    scored_pop.sort(key=lambda x: x[1])
+    
+    # Selection: Keep top half (elitism)
+    half_pop = [ind for ind, fit in scored_pop[:POPULATION_SIZE // 2]]
+    
+    new_population = half_pop.copy()
+    
+    # Crossover and Mutation to fill the rest of the population
+    while len(new_population) < POPULATION_SIZE:
+        parent1, parent2 = np.random.choice(len(half_pop), 2, replace=False)
+        p1, p2 = half_pop[parent1], half_pop[parent2]
+        
+        # Single-point crossover
+        crossover_point = np.random.randint(1, CHROMOSOME_LENGTH)
+        child = np.concatenate([p1[:crossover_point], [x for x in p2 if x not in p1[:crossover_point]]])
+        
+        # Mutation (swap mutation based on mutation rate)
+        if np.random.rand() < MUTATION_RATE:
+            idx1, idx2 = np.random.choice(CHROMOSOME_LENGTH, 2, replace=False)
+            child[idx1], child[idx2] = child[idx2], child[idx1]
+            
+        new_population.append(child)
+        
+    population = new_population
+
+# Final Best Solution
+best_scored = sorted([(ind, fitness(ind)) for ind in population], key=lambda x: x[1])
+best_route, best_distance = best_scored[0]
+
+print("Best Driver-to-Order Assignment (Orders 0-indexed):", best_route)
+print("Minimum Total Travel Distance:", best_distance)
+
+
+
+OUTPUT:
+Best Driver-to-Order Assignment (Orders 0-indexed): [2 3 0 1]
+Minimum Total Travel Distance: 9
